@@ -4,7 +4,7 @@ import numpy as np
 from io import BytesIO
 
 # ----------------------------
-# Simple Authentication
+# Simple Login (Can be replaced by streamlit-authenticator)
 # ----------------------------
 
 def login():
@@ -12,7 +12,7 @@ def login():
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
     if st.button("Login"):
-        if username == "admin" and password == "pass4inv":
+        if username == "admin" and password == "1234":
             st.session_state["authenticated"] = True
         else:
             st.error("Invalid credentials")
@@ -22,7 +22,7 @@ if "authenticated" not in st.session_state or not st.session_state["authenticate
     st.stop()
 
 # ----------------------------
-# Upload Section
+# Upload Excel
 # ----------------------------
 
 st.sidebar.title("Upload Inventory File")
@@ -50,25 +50,21 @@ if df is None:
     st.stop()
 
 df.columns = [str(c).strip().lower() for c in df.columns]
-
-# Required columns
 required = ['item code', 'barcode', 'item description', 'qty in stock', 'cost usd']
 for col in required:
     if col not in df.columns:
         st.error(f"Missing required column: {col}")
         st.stop()
 
-# Filter SH or RL only
 df = df[df['item code'].astype(str).str.startswith(('SH', 'RL'))]
 df = df[df['item description'].notnull()]
 
-# Get item code base
 def get_base(code):
     return code[:-1] if isinstance(code, str) and len(code) > 1 else code
 
 df['item_code_base'] = df['item code'].apply(get_base)
 
-# Grouping and processing
+# Grouping
 grouped = {}
 for _, row in df.iterrows():
     key = row['item_code_base']
@@ -93,25 +89,26 @@ for _, row in df.iterrows():
             grouped[key]['desc'] = desc
             grouped[key]['has_non_bonded'] = True
 
-# Create cleaned DataFrame
+# Build final DataFrame
 cleaned = pd.DataFrame([{
     'Item Code Base': k,
     'BarCode': v['barcode'],
     'Item Description': v['desc'],
-    'Qty (Total)': v['qty'],
+    'Qty (Total)': round(v['qty'], 2),
     'Cost (Avg)': round(v['cost_sum'] / v['qty'], 2) if v['qty'] else 0
 } for k, v in grouped.items()])
 
 st.success("✅ Cleanup complete.")
 
 # ----------------------------
-# Visualization by Color Code
+# Visualize by Color Code
 # ----------------------------
 
 st.header("🎨 Visual by Color Code")
 cleaned['Color Code'] = cleaned['Item Code Base'].astype(str).str[-5:]
 color_groups = cleaned.groupby('Color Code')
 
+# Use 2 wide columns with full width tables
 cols = st.columns(2)
 others = []
 col_index = 0
@@ -122,19 +119,26 @@ for color, group in sorted(color_groups, key=lambda x: x[0]):
         continue
 
     with cols[col_index]:
-        st.subheader(f"Color {color}")
-        st.table(group[['Item Description', 'Qty (Total)']].reset_index(drop=True))
+        with st.container():
+            st.subheader(f"Color {color}")
+            st.dataframe(
+                group[['Item Description', 'Qty (Total)']].reset_index(drop=True),
+                use_container_width=True
+            )
     col_index = (col_index + 1) % 2
 
-# Show single-item groups under "Others"
+# Show single-item color groups
 if others:
     st.markdown("---")
     st.subheader("Other Colors (1 item only)")
     others_df = pd.concat(others)
-    st.table(others_df[['Item Description', 'Qty (Total)']].reset_index(drop=True))
+    st.dataframe(
+        others_df[['Item Description', 'Qty (Total)']].reset_index(drop=True),
+        use_container_width=True
+    )
 
 # ----------------------------
-# Download Section
+# Export to Excel
 # ----------------------------
 
 def to_excel_download(df):
@@ -151,4 +155,3 @@ st.download_button(
     file_name="cleaned_inventory.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
-
