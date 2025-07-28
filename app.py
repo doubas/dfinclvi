@@ -108,7 +108,6 @@ st.header("🎨 Visual by Color Code")
 cleaned['Color Code'] = cleaned['Item Code Base'].astype(str).str[-5:]
 color_groups = cleaned.groupby('Color Code')
 
-# Use 2 wide columns with full width tables
 cols = st.columns(2)
 others = []
 col_index = 0
@@ -118,15 +117,15 @@ for color, group in sorted(color_groups, key=lambda x: x[0]):
         others.append(group)
         continue
 
-  with cols[col_index]:
+    with cols[col_index]:
         with st.container():
             st.subheader(f"Color {color}")
             st.dataframe(
-                group[['Item Description', 'Qty (Total)']].reset_index(drop=True),
-                use_container_width=True
+                group[['Item Description', 'Qty (Total)']],
+                use_container_width=True,
+                hide_index=True,
+                height=400
             )
-
-            
     col_index = (col_index + 1) % 2
 
 # Show single-item color groups
@@ -135,8 +134,10 @@ if others:
     st.subheader("Other Colors (1 item only)")
     others_df = pd.concat(others)
     st.dataframe(
-        others_df[['Item Description', 'Qty (Total)']].reset_index(drop=True),
-        use_container_width=True
+        others_df[['Item Description', 'Qty (Total)']],
+        use_container_width=True,
+        hide_index=True,
+        height=400
     )
 
 # ----------------------------
