@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+from io import BytesIO
 
 # ----------------------------
 # Simple Authentication
@@ -48,7 +49,6 @@ df = load_data(uploaded_file)
 if df is None:
     st.stop()
 
-# Normalize column names
 df.columns = [str(c).strip().lower() for c in df.columns]
 
 # Required columns
@@ -62,11 +62,13 @@ for col in required:
 df = df[df['item code'].astype(str).str.startswith(('SH', 'RL'))]
 df = df[df['item description'].notnull()]
 
-# Group by trimmed Item Code Base
-def get_base(code): return code[:-1] if isinstance(code, str) and len(code) > 1 else code
+# Get item code base
+def get_base(code):
+    return code[:-1] if isinstance(code, str) and len(code) > 1 else code
+
 df['item_code_base'] = df['item code'].apply(get_base)
 
-# Aggregation logic
+# Grouping and processing
 grouped = {}
 for _, row in df.iterrows():
     key = row['item_code_base']
@@ -91,7 +93,7 @@ for _, row in df.iterrows():
             grouped[key]['desc'] = desc
             grouped[key]['has_non_bonded'] = True
 
-# Convert to DataFrame
+# Create cleaned DataFrame
 cleaned = pd.DataFrame([{
     'Item Code Base': k,
     'BarCode': v['barcode'],
@@ -103,14 +105,14 @@ cleaned = pd.DataFrame([{
 st.success("✅ Cleanup complete.")
 
 # ----------------------------
-# Color Visualization
+# Visualization by Color Code
 # ----------------------------
 
 st.header("🎨 Visual by Color Code")
 cleaned['Color Code'] = cleaned['Item Code Base'].astype(str).str[-5:]
 color_groups = cleaned.groupby('Color Code')
 
-cols = st.columns(3)
+cols = st.columns(2)
 others = []
 col_index = 0
 
@@ -121,21 +123,32 @@ for color, group in sorted(color_groups, key=lambda x: x[0]):
 
     with cols[col_index]:
         st.subheader(f"Color {color}")
-        st.dataframe(group[['Item Description', 'Qty (Total)']], use_container_width=True)
-    col_index = (col_index + 1) % 3
+        st.table(group[['Item Description', 'Qty (Total)']].reset_index(drop=True))
+    col_index = (col_index + 1) % 2
 
+# Show single-item groups under "Others"
 if others:
     st.markdown("---")
     st.subheader("Other Colors (1 item only)")
-    st.dataframe(pd.concat(others)[['Item Description', 'Qty (Total)']], use_container_width=True)
+    others_df = pd.concat(others)
+    st.table(others_df[['Item Description', 'Qty (Total)']].reset_index(drop=True))
 
 # ----------------------------
-# Download
+# Download Section
 # ----------------------------
 
+def to_excel_download(df):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False)
+    output.seek(0)
+    return output
+
+st.markdown("---")
 st.download_button(
     "📥 Download Cleaned Excel",
-    cleaned.to_excel(index=False, engine="openpyxl"),
+    data=to_excel_download(cleaned),
     file_name="cleaned_inventory.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
+
