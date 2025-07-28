@@ -108,7 +108,7 @@ st.header("🎨 Visual by Color Code")
 cleaned['Color Code'] = cleaned['Item Code Base'].astype(str).str[-5:]
 color_groups = cleaned.groupby('Color Code')
 
-cols = st.columns(2)
+cols = st.columns(4)
 others = []
 col_index = 0
 
@@ -121,7 +121,7 @@ for color, group in sorted(color_groups, key=lambda x: x[0]):
         with st.container():
             st.subheader(f"Color {color}")
             st.dataframe(
-                group[[ 'Qty (Total)' , 'Item Description']],
+                group[['Item Description' , 'Qty (Total)']],
                 use_container_width=True,
                 hide_index=True,
                 height=400
