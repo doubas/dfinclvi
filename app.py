@@ -121,8 +121,9 @@ for color, group in sorted(color_groups, key=lambda x: x[0]):
         with st.container():
             st.subheader(f"Color {color}")
             st.dataframe(
-                group[['Item Description', 'Qty (Total)']],
-                use_container_width=True,
+                group[[ 'Qty (Total)' , 'Item Description']],
+                use_container_width=False,
+                use_page_widyh=True,
                 hide_index=True,
                 height=400
             )
