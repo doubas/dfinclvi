@@ -122,12 +122,12 @@ for color, group in sorted(color_groups, key=lambda x: x[0]):
     with st.container():
         st.subheader(f"Color {color}")
         st.dataframe(
-            group[['Item Description', 'Qty (Total)']],
+            group[['Qty (Total)' , 'Item Description']],
             use_container_width=True,
             hide_index=True,
             height=400  # Adjust as needed
         
-
+        )
             )
     col_index = (col_index + 1) % 2
 
