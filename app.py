@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from io import BytesIO
+st.write("DB username:", st.secrets["db_username"])
+st.write("DB password:", st.secrets["db_password"])
 
 # ----------------------------
 # Simple Login (Can be replaced by streamlit-authenticator)
@@ -9,10 +11,10 @@ from io import BytesIO
 
 def login():
     st.title("Inventory Cleanup & Visualizer")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-    if st.button("Login"):
-        if username == "admin" and password == "12345":
+    username = st.secrets["db_username"]
+    password = st.secrets(["db_password"], type="password")
+   ' if st.button("Login"):
+   '     if username == "admin" and password == "12345":
             st.session_state["authenticated"] = True
         else:
             st.error("Invalid credentials")
